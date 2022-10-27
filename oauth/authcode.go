@@ -191,6 +191,7 @@ type AuthorizationCodeTokenSource struct {
 	TokenURL       string
 	EndpointParams *url.Values
 	Scopes         []string
+	IsOidc         bool
 }
 
 // Token generates a new token using an authorization code.
@@ -289,7 +290,8 @@ func (ac *AuthorizationCodeTokenSource) Token() (*oauth2.Token, error) {
 		payload.Set("client_secret", ac.ClientSecret)
 	}
 
-	return requestToken(ac.TokenURL, payload.Encode())
+	cli.LogDebug("OIDC: ", ac.IsOidc)
+	return requestToken(ac.TokenURL, payload.Encode(), ac.IsOidc)
 }
 
 // AuthorizationCodeHandler sets up the OAuth 2.0 authorization code with PKCE authentication
@@ -304,6 +306,7 @@ func (h *AuthorizationCodeHandler) Parameters() []cli.AuthParam {
 		{Name: "authorize_url", Required: true, Help: "OAuth 2.0 authorization URL, e.g. https://api.example.com/oauth/authorize"},
 		{Name: "token_url", Required: true, Help: "OAuth 2.0 token URL, e.g. https://api.example.com/oauth/token"},
 		{Name: "scopes", Help: "Optional scopes to request in the token"},
+		{Name: "is_oidc", Required: false, Help: "Is the OAuth 2.0 provider an OpenID Connect provider ? (Default: false)"},
 	}
 }
 
@@ -312,7 +315,7 @@ func (h *AuthorizationCodeHandler) OnRequest(request *http.Request, key string, 
 	if request.Header.Get("Authorization") == "" {
 		endpointParams := url.Values{}
 		for k, v := range params {
-			if k == "client_id" || k == "client_secret" || k == "scopes" || k == "authorize_url" || k == "token_url" {
+			if k == "client_id" || k == "client_secret" || k == "scopes" || k == "authorize_url" || k == "token_url" || k == "is_oidc" {
 				// Not a custom param...
 				continue
 			}
@@ -327,6 +330,7 @@ func (h *AuthorizationCodeHandler) OnRequest(request *http.Request, key string, 
 			TokenURL:       params["token_url"],
 			EndpointParams: &endpointParams,
 			Scopes:         strings.Split(params["scopes"], ","),
+			IsOidc:         params["is_oidc"] == "true",
 		}
 
 		// Try to get a cached refresh token from the current profile and use

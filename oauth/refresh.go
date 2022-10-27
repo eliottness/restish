@@ -42,7 +42,7 @@ func (ts RefreshTokenSource) Token() (*oauth2.Token, error) {
 			payload += "&" + params
 		}
 
-		token, err := requestToken(ts.TokenURL, payload)
+		token, err := requestToken(ts.TokenURL, payload, false)
 		if err == nil {
 			return token, err
 		}

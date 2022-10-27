@@ -19,13 +19,14 @@ type tokenResponse struct {
 	TokenType    string        `json:"token_type"`
 	AccessToken  string        `json:"access_token"`
 	RefreshToken string        `json:"refresh_token,omitempty"`
+	IdToken      string        `json:"id_token,omitempty"`
 	ExpiresIn    time.Duration `json:"expires_in"`
 	Expiry       time.Time     `json:"expiry,omitempty"`
 }
 
 // requestToken from the given URL with the given payload. This can be used
 // for many different grant types and will return a parsed token.
-func requestToken(tokenURL, payload string) (*oauth2.Token, error) {
+func requestToken(tokenURL, payload string, isOidc bool) (*oauth2.Token, error) {
 	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(payload))
 	if err != nil {
 		return nil, err
@@ -63,6 +64,10 @@ func requestToken(tokenURL, payload string) (*oauth2.Token, error) {
 		TokenType:    decoded.TokenType,
 		RefreshToken: decoded.RefreshToken,
 		Expiry:       expiry,
+	}
+
+	if isOidc {
+		token.AccessToken = decoded.IdToken
 	}
 
 	return token, nil
